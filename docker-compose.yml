@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  webserver:
+    build: .
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__FERNET_KEY: $(openssl rand -base64 32)
+      AIRFLOW__WEBSERVER__SECRET_KEY: $(openssl rand -base64 32)
+      AIRFLOW__WEBSERVER__WORKERS: 1
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    command: webserver
+    volumes:
+      - ./dags:/opt/airflow/dags
+
+  scheduler:
+    build: .
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__FERNET_KEY: $(openssl rand -base64 32)
+    depends_on:
+      - webserver
+      - postgres
+    command: scheduler
+    volumes:
+      - ./dags:/opt/airflow/dags
+
+volumes:
+  postgres_data:
