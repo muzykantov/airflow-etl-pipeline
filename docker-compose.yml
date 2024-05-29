@@ -1,3 +1,7 @@
+networks:
+  airflow_network:
+    driver: bridge
+
 services:
   postgres:
     image: postgres:latest
@@ -11,14 +15,16 @@ services:
         max-file: "3"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - airflow_network
 
   webserver:
     build: .
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__CORE__FERNET_KEY: $(openssl rand -base64 32)
-      AIRFLOW__WEBSERVER__SECRET_KEY: $(openssl rand -base64 32)
+      AIRFLOW__CORE__FERNET_KEY: "XvLWeJ9zZ4fD9x1Qmk+YFg=="
+      AIRFLOW__WEBSERVER__SECRET_KEY: "my_super_secret_key_12345"
       AIRFLOW__WEBSERVER__WORKERS: 1
     depends_on:
       - postgres
@@ -27,19 +33,24 @@ services:
     command: webserver
     volumes:
       - ./dags:/opt/airflow/dags
+    networks:
+      - airflow_network
 
   scheduler:
     build: .
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__CORE__FERNET_KEY: $(openssl rand -base64 32)
+      AIRFLOW__CORE__FERNET_KEY: "XvLWeJ9zZ4fD9x1Qmk+YFg=="
+      AIRFLOW__WEBSERVER__SECRET_KEY: "my_super_secret_key_12345"
     depends_on:
       - webserver
       - postgres
     command: scheduler
     volumes:
       - ./dags:/opt/airflow/dags
+    networks:
+      - airflow_network
 
 volumes:
   postgres_data:
